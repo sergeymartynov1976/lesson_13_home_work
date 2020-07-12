@@ -41,8 +41,8 @@ def process_image(url):
     global count_bites
     global count_err
     global urls
-    global size1
-    global size2
+    global width
+    global height
     lock.acquire()
     try:
         resp = requests.get(url[:-1])

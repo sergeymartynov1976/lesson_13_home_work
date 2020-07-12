@@ -13,7 +13,7 @@ import sys
 NAME = 'Picture preview'
 DESCRIPTION = '''This is a program that are able to make thumbnail of pictures in Internet'''
 EPILOG = '(c) Sergey Martynov 2020'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 
 # Функция чтения файла с адресами

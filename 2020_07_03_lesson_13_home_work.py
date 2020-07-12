@@ -8,52 +8,59 @@ from PIL import Image
 from threading import Lock
 from io import BytesIO
 from multiprocessing.pool import ThreadPool
+import sys
 
 NAME = 'Picture preview'
 DESCRIPTION = '''This is a program that are able to make thumbnail of pictures in Internet'''
 EPILOG = '(c) Sergey Martynov 2020'
-VERSION = '0.0.1'
+VERSION = '0.0.2'
 
 
 # Функция чтения файла с адресами
-def read_f(f_name):
+def get_urls(f_name):
     try:
         with open(f_name, 'r') as f:
             urls = f.readlines()
     except Exception:
-        print('No file with such name')
+        print(f'No file with name "{f_name}"')
+        sys.exit(-1)
     return urls
 
 
 # Проверяем существование выходного каталога. Если есть, то переходим в него, если нет, то создаем и переходим
 def dir_out(dir_name):
-    if os.path.isdir('./' + dir_name):
-        os.chdir('./' + dir_name)
-    else:
+    if not os.path.isdir('./' + dir_name):
         os.mkdir('./' + dir_name)
-        os.chdir('./' + dir_name)
+    os.chdir('./' + dir_name)
     return os.getcwd()
 
 
-def main_code(url):
+# Обработка изображений
+def process_image(url):
     global count_files
     global count_bites
     global count_err
     global urls
-    global size1
-    global size2
+    global width
+    global height
     lock.acquire()
     try:
         resp = requests.get(url[:-1])
         img = Image.open(BytesIO(resp.content))
         count_bites += len(resp.content)
-        img = img.resize((128, 128), Image.ANTIALIAS)
+        img = img.resize((width, height), Image.ANTIALIAS)
         img.save(f'{urls.index(url):05}.jpeg')
         print(f'File {url[:-1]} is processed.')
         count_files += 1
     except Exception:
         count_err += 1
     lock.release()
+
+
+# Создаем счетчики
+count_files = 0
+count_bites = 0
+count_err = 0
 
 
 if __name__ == '__main__':
@@ -68,11 +75,10 @@ if __name__ == '__main__':
     args = p.parse_args()
 
     # Определяем размеры thumbnail
-    size1 = int(args.size.split(sep='x')[0])
-    size2 = int(args.size.split(sep='x')[1])
+    width, height = map(int, args.size.split(sep='x'))
 
     # Читаем файл со списком адресов
-    urls = read_f(args.file)
+    urls = get_urls(args.file)
 
     # Запоминаем директорию от куда начали
     start_directory = os.getcwd()
@@ -83,15 +89,11 @@ if __name__ == '__main__':
     # Основная обработка.
     # Создаем пул потоков
     pool = ThreadPool(args.threads)
-    # Создаем счетчики
-    count_files = 0
-    count_bites = 0
-    count_err = 0
-    # Создаем замок
+
     lock = Lock()
     # Обработка файлов
     start = time.perf_counter()
-    pool.map(main_code, urls)
+    pool.map(process_image, urls)
     pool.close()
     pool.join()
     # Переходим в директорию, от куда начали работать.
